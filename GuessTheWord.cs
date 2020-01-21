@@ -7,7 +7,7 @@ using Oxide.Core.Libraries;
 
 namespace Oxide.Plugins
 {
-    [Info("Guess The Word", "Bazz3l", "1.0.0")]
+    [Info("Guess The Word", "Bazz3l", "1.0.1")]
     [Description("Guess the scrambled word and receive a reward.")]
     class GuessTheWord : RustPlugin
     {
@@ -101,7 +101,7 @@ namespace Oxide.Plugins
 
         private void EventEnded()
         {
-            eventActive = false;
+            ResetEvent();
 
             MessageAll("EventEnded", currentWord);
         }
