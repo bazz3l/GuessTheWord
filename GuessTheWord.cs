@@ -7,7 +7,7 @@ using Oxide.Core.Libraries;
 
 namespace Oxide.Plugins
 {
-    [Info("Guess The Word", "Bazz3l", "1.0.1")]
+    [Info("Guess The Word", "Bazz3l", "1.0.2")]
     [Description("Guess the scrambled word and receive a reward.")]
     class GuessTheWord : RustPlugin
     {
@@ -33,8 +33,8 @@ namespace Oxide.Plugins
             {
                 UseServerRewards   = true,
                 UseEconomics       = false,
-                ServerRewardPoints = 10,
-                EconomicsPoints    = 10.0,
+                ServerRewardPoints = 100,
+                EconomicsPoints    = 100.0,
                 MinWordLength      = 3,
                 MaxWordLength      = 6,
                 eventTime          = 3600f,
@@ -62,7 +62,7 @@ namespace Oxide.Plugins
         {
             lang.RegisterMessages(new Dictionary<string, string>
             {
-                ["Prefix"]      = "<color=#405cff>[Guess The Word]</color>: ",
+                ["Prefix"]      = "<color=#DC143C>[Guess The Word]</color>: ",
                 ["Syntax"]      = "invalid syntax, /word <answer>",
                 ["Active"]      = "not active.",
                 ["Invalid"]     = "incorrect answer.",
@@ -141,6 +141,9 @@ namespace Oxide.Plugins
                 scrambledWord += wordChars[index];
                 wordChars.RemoveAt(index);
             }
+
+            if (currentWord == scrambledWord)
+                return ScrambleWord();
 
             return scrambledWord;
         }
