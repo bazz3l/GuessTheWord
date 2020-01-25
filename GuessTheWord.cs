@@ -7,7 +7,7 @@ using Oxide.Core.Libraries;
 
 namespace Oxide.Plugins
 {
-    [Info("Guess The Word", "Bazz3l", "1.0.2")]
+    [Info("Guess The Word", "Bazz3l", "1.0.3")]
     [Description("Guess the scrambled word and receive a reward.")]
     class GuessTheWord : RustPlugin
     {
@@ -15,9 +15,8 @@ namespace Oxide.Plugins
         private Plugin ServerRewards, Economics;
 
         #region Fields
-        private const string apiEndpoint = "https://raw.githubusercontent.com/instafluff/ComfyDictionary/master/wordlist.txt?raw=true";
-        private List<string> wordList    = new List<string>();
-        private bool eventActive         = false;
+        private List<string> wordList = new List<string>();
+        private bool eventActive      = false;
         private Timer eventRepeatTimer;
         private Timer eventTimer;
         private string currentScramble;
@@ -31,12 +30,14 @@ namespace Oxide.Plugins
         {
             return new PluginConfig
             {
+                APIEndpoint        = "https://raw.githubusercontent.com/instafluff/ComfyDictionary/master/wordlist.txt?raw=true",
                 UseServerRewards   = true,
                 UseEconomics       = false,
                 ServerRewardPoints = 100,
                 EconomicsPoints    = 100.0,
                 MinWordLength      = 3,
                 MaxWordLength      = 6,
+                MaxWords           = 50,
                 eventTime          = 3600f,
                 eventLength        = 120f
             };
@@ -44,12 +45,14 @@ namespace Oxide.Plugins
 
         private class PluginConfig
         {
+            public string APIEndpoint;
             public bool UseServerRewards;
             public bool UseEconomics;
             public int ServerRewardPoints;
             public double EconomicsPoints;
             public int MinWordLength;
             public int MaxWordLength;
+            public int MaxWords;
             public float eventTime;
             public float eventLength;
         }
@@ -62,13 +65,13 @@ namespace Oxide.Plugins
         {
             lang.RegisterMessages(new Dictionary<string, string>
             {
-                ["Prefix"]      = "<color=#DC143C>[Guess The Word]</color>: ",
+                ["Prefix"]      = "<color=#DC143C>Guess The Word</color>: ",
                 ["Syntax"]      = "invalid syntax, /word <answer>",
                 ["Active"]      = "not active.",
                 ["Invalid"]     = "incorrect answer.",
-                ["StartEvent"]  = "guess the current word, ({0}).",
-                ["EventEnded"]  = "no one guessed the word, ({0}).",
-                ["EventWinner"] = "{0}, guessed the word {1}.",
+                ["StartEvent"]  = "guess the word, <color=#DC143C>{0}</color>",
+                ["EventEnded"]  = "no one guessed, <color=#DC143C>{0}</color>",
+                ["EventWinner"] = "<color=#DC143C>{0}</color> guessed the word, <color=#DC143C>{1}</color>",
             }, this);
         }
 
@@ -122,10 +125,13 @@ namespace Oxide.Plugins
 
         private void FetchWordList()
         {
-            webrequest.Enqueue(apiEndpoint, null, (code, response) => {
+            webrequest.Enqueue(config.APIEndpoint, null, (code, response) => {
                 if (code != 200 || response == null) return;
 
-                wordList = response.Split(',').ToList<string>().Where(x => x.Length >= config.MinWordLength && x.Length <= config.MaxWordLength).ToList();
+                wordList = response.Split(',').ToList<string>()
+                .Where(x => x.Length >= config.MinWordLength && x.Length <= config.MaxWordLength)
+                .Take(config.MaxWords)
+                .ToList();
 
             }, this, RequestMethod.GET);
         }
