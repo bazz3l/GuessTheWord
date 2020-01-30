@@ -7,7 +7,7 @@ using Oxide.Core.Libraries;
 
 namespace Oxide.Plugins
 {
-    [Info("Guess The Word", "Bazz3l", "1.0.3")]
+    [Info("Guess The Word", "Bazz3l", "1.0.4")]
     [Description("Guess the scrambled word and receive a reward.")]
     class GuessTheWord : RustPlugin
     {
@@ -71,6 +71,7 @@ namespace Oxide.Plugins
                 ["Invalid"]     = "incorrect answer.",
                 ["StartEvent"]  = "guess the word, <color=#DC143C>{0}</color>",
                 ["EventEnded"]  = "no one guessed, <color=#DC143C>{0}</color>",
+                ["EventAward"]  = "you received <color=#DC143C>{0}</color>",
                 ["EventWinner"] = "<color=#DC143C>{0}</color> guessed the word, <color=#DC143C>{1}</color>",
             }, this);
         }
@@ -161,15 +162,27 @@ namespace Oxide.Plugins
 
         private void RewardPlayer(BasePlayer player)
         {
+            string message = string.Empty;
+
             if (config.UseServerRewards)
+            {
                 ServerRewards?.Call("AddPoints", player.userID, config.ServerRewardPoints);
 
+                message = Lang("EventAward", player.UserIDString, string.Format("{0}RP", config.ServerRewardPoints));
+            }
+
             if (config.UseEconomics)
+            {
                 Economics?.Call("Deposit", player.userID, config.EconomicsPoints);
 
-            ResetEvent();
+                message = Lang("EventAward", player.UserIDString, string.Format("${0}", (int)config.EconomicsPoints + "RP"));
+            }
 
+            ResetEvent();
+            
             MessageAll("EventWinner", player.displayName, currentWord);
+
+            player.ChatMessage(message);
         }
 
         private void MessageAll(string key, params object[] args)
