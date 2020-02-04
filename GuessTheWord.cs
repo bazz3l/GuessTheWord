@@ -7,7 +7,7 @@ using Oxide.Core.Libraries.Covalence;
 
 namespace Oxide.Plugins
 {
-    [Info("Guess The Word", "Bazz3l", "1.0.6")]
+    [Info("Guess The Word", "Bazz3l", "1.0.7")]
     [Description("Guess the scrambled word and receive a reward.")]
     class GuessTheWord : CovalencePlugin
     {
@@ -15,7 +15,7 @@ namespace Oxide.Plugins
 
         #region Fields
         List<string> wordList = new List<string>();
-        bool eventActive      = false;
+        bool eventActive = false;
         Timer eventRepeatTimer;
         Timer eventTimer;
         string currentScramble;
@@ -29,16 +29,16 @@ namespace Oxide.Plugins
         {
             return new PluginConfig
             {
-                APIEndpoint        = "https://raw.githubusercontent.com/instafluff/ComfyDictionary/master/wordlist.txt?raw=true",
-                UseServerRewards   = true,
-                UseEconomics       = false,
+                APIEndpoint = "https://raw.githubusercontent.com/instafluff/ComfyDictionary/master/wordlist.txt?raw=true",
+                UseServerRewards = true,
+                UseEconomics = false,
                 ServerRewardPoints = 100,
-                EconomicsPoints    = 100.0,
-                MinWordLength      = 4,
-                MaxWordLength      = 6,
-                MaxWords           = 50,
-                eventTime          = 3600f,
-                eventLength        = 120f
+                EconomicsPoints = 100.0,
+                MinWordLength = 4,
+                MaxWordLength = 6,
+                MaxWords = 50,
+                eventTime = 3600f,
+                eventLength = 120f
             };
         }
 
@@ -181,6 +181,8 @@ namespace Oxide.Plugins
 
                 player.Message(message);             
             }
+
+            ResetEvent();
         }
 
         void MessageAll(string key, params object[] args)
