@@ -1,15 +1,15 @@
 using System.Collections.Generic;
-using System.Linq;
 using System;
+using System.Linq;
 using Oxide.Core;
 using Oxide.Core.Plugins;
-using Oxide.Core.Libraries;
+using Oxide.Core.Libraries.Covalence;
 
 namespace Oxide.Plugins
 {
-    [Info("Guess The Word", "Bazz3l", "1.0.4")]
+    [Info("Guess The Word", "Bazz3l", "1.0.5")]
     [Description("Guess the scrambled word and receive a reward.")]
-    class GuessTheWord : RustPlugin
+    class GuessTheWord : CovalencePlugin
     {
         [PluginReference]
         private Plugin ServerRewards, Economics;
@@ -35,7 +35,7 @@ namespace Oxide.Plugins
                 UseEconomics       = false,
                 ServerRewardPoints = 100,
                 EconomicsPoints    = 100.0,
-                MinWordLength      = 3,
+                MinWordLength      = 4,
                 MaxWordLength      = 6,
                 MaxWords           = 50,
                 eventTime          = 3600f,
@@ -63,16 +63,15 @@ namespace Oxide.Plugins
 
         protected override void LoadDefaultMessages()
         {
-            lang.RegisterMessages(new Dictionary<string, string>
-            {
-                ["Prefix"]      = "<color=#DC143C>Guess The Word</color>: ",
-                ["Syntax"]      = "invalid syntax, /word <answer>",
-                ["Active"]      = "not active.",
-                ["Invalid"]     = "incorrect answer.",
-                ["StartEvent"]  = "guess the word, <color=#DC143C>{0}</color>",
-                ["EventEnded"]  = "no one guessed, <color=#DC143C>{0}</color>",
-                ["EventAward"]  = "you received <color=#DC143C>{0}</color>",
-                ["EventWinner"] = "<color=#DC143C>{0}</color> guessed the word, <color=#DC143C>{1}</color>",
+            lang.RegisterMessages(new Dictionary<string, string> {
+                {"Prefix", "[#DC143C]Guess The Word[/#]: "},
+                {"InvalidSyntax", "invalid syntax, /word <answer>"},
+                {"NotActive", "not active."},
+                {"Invalid", "incorrect answer."},
+                {"StartEvent", "guess the word, [#DC143C]{0}[/#]"},
+                {"EventEnded", "no one guessed, [#DC143C]{0}[/#]"},
+                {"EventAward", "you received [#DC143C]{0}[/#]"},
+                {"EventWinner", "[#DC143C]{0}[/#] guessed the word, [#DC143C]{1}[/#]"}
             }, this);
         }
 
@@ -126,15 +125,14 @@ namespace Oxide.Plugins
 
         private void FetchWordList()
         {
-            webrequest.Enqueue(config.APIEndpoint, null, (code, response) => {
+            webrequest.EnqueueGet(config.APIEndpoint, (code, response) => {
                 if (code != 200 || response == null) return;
 
                 wordList = response.Split(',').ToList<string>()
                 .Where(x => x.Length >= config.MinWordLength && x.Length <= config.MaxWordLength)
                 .Take(config.MaxWords)
                 .ToList();
-
-            }, this, RequestMethod.GET);
+            }, this);
         }
 
         private string ScrambleWord()
@@ -160,61 +158,62 @@ namespace Oxide.Plugins
             return string.Equals(currentGuess, currentWord, StringComparison.OrdinalIgnoreCase);
         }
 
-        private void RewardPlayer(BasePlayer player)
+        private void RewardPlayer(IPlayer player)
         {
             string message = string.Empty;
 
-            if (config.UseServerRewards)
+            if (ServerRewards && config.UseServerRewards)
             {
-                ServerRewards?.Call("AddPoints", player.userID, config.ServerRewardPoints);
+                ServerRewards?.Call("AddPoints", player.Id, config.ServerRewardPoints);
 
-                message = Lang("EventAward", player.UserIDString, string.Format("{0}RP", config.ServerRewardPoints));
+                message = Lang("EventAward", player.Id, string.Format("{0}RP", config.ServerRewardPoints));
             }
 
-            if (config.UseEconomics)
+            if (Economics && config.UseEconomics)
             {
-                Economics?.Call("Deposit", player.userID, config.EconomicsPoints);
+                Economics?.Call("Deposit", player.Id, config.EconomicsPoints);
 
-                message = Lang("EventAward", player.UserIDString, string.Format("${0}", (int)config.EconomicsPoints + "RP"));
+                message = Lang("EventAward", player.Id, string.Format("${0}", (int)config.EconomicsPoints + "RP"));
             }
 
-            ResetEvent();
-            
-            MessageAll("EventWinner", player.displayName, currentWord);
+            if (ServerRewards || Economics)
+            {
+                MessageAll("EventWinner", player.Name, currentWord);
 
-            player.ChatMessage(message);
+                player.Message(message);             
+            }
         }
 
         private void MessageAll(string key, params object[] args)
         {
-            foreach (BasePlayer player in BasePlayer.activePlayerList)
+            foreach (IPlayer player in covalence.Players.Connected)
             {
-                if (player == null || !player.IsConnected) continue;
+                if (player == null) continue;
 
-                player.ChatMessage(Lang("Prefix", player.UserIDString) + Lang(key, player.UserIDString, args));
+                player.Message(Lang("Prefix", player.Id) + Lang(key, player.Id, args));
             }
         }
         #endregion
 
         #region Commands
-        [ChatCommand("word")]
-        void WordCommand(BasePlayer player, string command, string[] args)
+        [Command("word")]
+        void WordCommand(IPlayer player, string command, string[] args)
         {
             if (args == null || args.Length < 1)
             {
-                player.ChatMessage(Lang("Prefix", player.UserIDString) + Lang("Syntax", player.UserIDString));
+                player.Message(Lang("Prefix", player.Id) + Lang("InvalidSyntax", player.Id));
                 return;
             }
 
             if (!eventActive)
             {
-                player.ChatMessage(Lang("Prefix", player.UserIDString) + Lang("Active", player.UserIDString));
+                player.Message(Lang("Prefix", player.Id) + Lang("NotActive", player.Id));
                 return;
             }
 
             if (!CheckGuess(args[0]))
             {
-                player.ChatMessage(Lang("Prefix", player.UserIDString) + Lang("Invalid", player.UserIDString));
+                player.Message(Lang("Prefix", player.Id) + Lang("Invalid", player.Id));
                 return;
             }
 
