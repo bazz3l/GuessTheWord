@@ -7,26 +7,25 @@ using Oxide.Core.Libraries.Covalence;
 
 namespace Oxide.Plugins
 {
-    [Info("Guess The Word", "Bazz3l", "1.0.5")]
+    [Info("Guess The Word", "Bazz3l", "1.0.6")]
     [Description("Guess the scrambled word and receive a reward.")]
     class GuessTheWord : CovalencePlugin
     {
-        [PluginReference]
-        private Plugin ServerRewards, Economics;
+        [PluginReference] Plugin ServerRewards, Economics;
 
         #region Fields
-        private List<string> wordList = new List<string>();
-        private bool eventActive      = false;
-        private Timer eventRepeatTimer;
-        private Timer eventTimer;
-        private string currentScramble;
-        private string currentWord;
+        List<string> wordList = new List<string>();
+        bool eventActive      = false;
+        Timer eventRepeatTimer;
+        Timer eventTimer;
+        string currentScramble;
+        string currentWord;
         #endregion
 
         #region Config
-        private PluginConfig config;
+        PluginConfig config;
 
-        private PluginConfig GetDefaultConfig()
+        PluginConfig GetDefaultConfig()
         {
             return new PluginConfig
             {
@@ -43,7 +42,7 @@ namespace Oxide.Plugins
             };
         }
 
-        private class PluginConfig
+        class PluginConfig
         {
             public string APIEndpoint;
             public bool UseServerRewards;
@@ -75,21 +74,21 @@ namespace Oxide.Plugins
             }, this);
         }
 
-        private void OnServerInitialized()
+        void OnServerInitialized()
         {
             FetchWordList();
 
             eventRepeatTimer = timer.Repeat(config.eventTime, 0, () => StartEvent());
         }
 
-        private void Init()
+        void Init()
         {
             config = Config.ReadObject<PluginConfig>();
         }
         #endregion
 
         #region Core
-        private void StartEvent()
+        void StartEvent()
         {
             if (eventActive || wordList.Count == 0) return;
 
@@ -102,14 +101,14 @@ namespace Oxide.Plugins
             eventTimer = timer.Once(config.eventLength, () => EventEnded());
         }
 
-        private void EventEnded()
+        void EventEnded()
         {
             ResetEvent();
 
             MessageAll("EventEnded", currentWord);
         }
 
-        private void ResetEvent()
+        void ResetEvent()
         {
             eventActive = false;
 
@@ -123,7 +122,7 @@ namespace Oxide.Plugins
                 eventTimer.Destroy();
         }
 
-        private void FetchWordList()
+        void FetchWordList()
         {
             webrequest.EnqueueGet(config.APIEndpoint, (code, response) => {
                 if (code != 200 || response == null) return;
@@ -135,7 +134,7 @@ namespace Oxide.Plugins
             }, this);
         }
 
-        private string ScrambleWord()
+        string ScrambleWord()
         {
             List<char> wordChars = new List<char>(currentWord.ToCharArray());
             string scrambledWord = string.Empty;
@@ -153,12 +152,12 @@ namespace Oxide.Plugins
             return scrambledWord;
         }
 
-        private bool CheckGuess(string currentGuess)
+        bool CheckGuess(string currentGuess)
         {
             return string.Equals(currentGuess, currentWord, StringComparison.OrdinalIgnoreCase);
         }
 
-        private void RewardPlayer(IPlayer player)
+        void RewardPlayer(IPlayer player)
         {
             string message = string.Empty;
 
@@ -184,7 +183,7 @@ namespace Oxide.Plugins
             }
         }
 
-        private void MessageAll(string key, params object[] args)
+        void MessageAll(string key, params object[] args)
         {
             foreach (IPlayer player in covalence.Players.Connected)
             {
@@ -222,7 +221,7 @@ namespace Oxide.Plugins
         #endregion
 
         #region Helpers
-        private string Lang(string key, string id = null, params object[] args) => string.Format(lang.GetMessage(key, this, id), args);
+        string Lang(string key, string id = null, params object[] args) => string.Format(lang.GetMessage(key, this, id), args);
         #endregion
     }
 }
