@@ -1,13 +1,13 @@
 using System.Collections.Generic;
-using System;
 using System.Linq;
-using Oxide.Core;
+using System;
 using Oxide.Core.Plugins;
+using Oxide.Core.Libraries;
 using Oxide.Core.Libraries.Covalence;
 
 namespace Oxide.Plugins
 {
-    [Info("Guess The Word", "Bazz3l", "1.0.7")]
+    [Info("Guess The Word", "Bazz3l", "1.0.8")]
     [Description("Guess the scrambled word and receive a reward.")]
     class GuessTheWord : CovalencePlugin
     {
@@ -124,14 +124,17 @@ namespace Oxide.Plugins
 
         void FetchWordList()
         {
-            webrequest.EnqueueGet(config.APIEndpoint, (code, response) => {
-                if (code != 200 || response == null) return;
+            webrequest.Enqueue(config.APIEndpoint, null, (code, response) => {
+                if (code != 200 || response == null)
+                {
+                    return;
+                }
 
                 wordList = response.Split(',').ToList<string>()
                 .Where(x => x.Length >= config.MinWordLength && x.Length <= config.MaxWordLength)
                 .Take(config.MaxWords)
                 .ToList();
-            }, this);
+            }, this, RequestMethod.GET);
         }
 
         string ScrambleWord()
@@ -139,15 +142,19 @@ namespace Oxide.Plugins
             List<char> wordChars = new List<char>(currentWord.ToCharArray());
             string scrambledWord = string.Empty;
 
-            while(wordChars.Count > 0)
+            while (wordChars.Count > 0)
             {
                 int index = UnityEngine.Random.Range(0, wordChars.Count - 1);
+
                 scrambledWord += wordChars[index];
+
                 wordChars.RemoveAt(index);
             }
 
             if (currentWord == scrambledWord)
+            {
                 return ScrambleWord();
+            }
 
             return scrambledWord;
         }
@@ -189,7 +196,10 @@ namespace Oxide.Plugins
         {
             foreach (IPlayer player in covalence.Players.Connected)
             {
-                if (player == null) continue;
+                if (player == null || !player.IsConnected)
+                {
+                    continue;
+                }
 
                 player.Message(Lang("Prefix", player.Id) + Lang(key, player.Id, args));
             }
