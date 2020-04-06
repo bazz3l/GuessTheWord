@@ -7,7 +7,7 @@ using Oxide.Core.Libraries.Covalence;
 
 namespace Oxide.Plugins
 {
-    [Info("Guess The Word", "Bazz3l", "1.0.8")]
+    [Info("Guess The Word", "Bazz3l", "1.0.9")]
     [Description("Guess the scrambled word and receive a reward.")]
     class GuessTheWord : CovalencePlugin
     {
@@ -67,10 +67,10 @@ namespace Oxide.Plugins
                 {"InvalidSyntax", "invalid syntax, /word <answer>"},
                 {"NotActive", "not active."},
                 {"Invalid", "incorrect answer."},
-                {"StartEvent", "guess the word, [#DC143C]{0}[/#]"},
-                {"EventEnded", "no one guessed, [#DC143C]{0}[/#]"},
-                {"EventAward", "you received [#DC143C]{0}[/#]"},
-                {"EventWinner", "[#DC143C]{0}[/#] guessed the word, [#DC143C]{1}[/#]"}
+                {"StartEvent", "guess the word ([#DC143C]{0}[/#]) /word <answer>"},
+                {"EventEnded", "no one guessed ([#DC143C]{0}[/#])"},
+                {"EventAward", "you received ([#DC143C]{0}[/#])"},
+                {"EventWinner", "[#DC143C]{0}[/#] guessed the word ([#DC143C]{1}[/#])"}
             }, this);
         }
 
@@ -90,10 +90,15 @@ namespace Oxide.Plugins
         #region Core
         void StartEvent()
         {
-            if (eventActive || wordList.Count == 0) return;
+            if (eventActive || wordList.Count == 0)
+            {
+                return;
+            }
 
-            eventActive     = true;
-            currentWord     = wordList[Oxide.Core.Random.Range(0, wordList.Count)];
+            eventActive = true;
+
+            currentWord = wordList.GetRandom();
+
             currentScramble = ScrambleWord();
 
             MessageAll("StartEvent", currentScramble);
@@ -114,12 +119,14 @@ namespace Oxide.Plugins
 
             if(!eventRepeatTimer.Destroyed)
             {
-                eventRepeatTimer.Destroy();
+                eventRepeatTimer?.Destroy();
                 eventRepeatTimer = timer.Repeat(config.eventTime, 0, () => StartEvent());
             }
 
             if(!eventTimer.Destroyed)
-                eventTimer.Destroy();
+            {
+                eventTimer?.Destroy();
+            }
         }
 
         void FetchWordList()
@@ -140,6 +147,7 @@ namespace Oxide.Plugins
         string ScrambleWord()
         {
             List<char> wordChars = new List<char>(currentWord.ToCharArray());
+            
             string scrambledWord = string.Empty;
 
             while (wordChars.Count > 0)
@@ -166,27 +174,21 @@ namespace Oxide.Plugins
 
         void RewardPlayer(IPlayer player)
         {
-            string message = string.Empty;
-
             if (ServerRewards && config.UseServerRewards)
             {
                 ServerRewards?.Call("AddPoints", player.Id, config.ServerRewardPoints);
-
-                message = Lang("EventAward", player.Id, string.Format("{0}RP", config.ServerRewardPoints));
+                player.Message(Lang("EventAward", player.Id, $"{config.ServerRewardPoints.ToString()} RP"));
             }
 
             if (Economics && config.UseEconomics)
             {
                 Economics?.Call("Deposit", player.Id, config.EconomicsPoints);
-
-                message = Lang("EventAward", player.Id, string.Format("${0}", (int)config.EconomicsPoints + "RP"));
+                player.Message(Lang("EventAward", player.Id, $"{config.EconomicsPoints.ToString()} RP"));
             }
 
             if (ServerRewards || Economics)
             {
-                MessageAll("EventWinner", player.Name, currentWord);
-
-                player.Message(message);             
+                MessageAll("EventWinner", player.Name, currentWord);  
             }
 
             ResetEvent();
