@@ -369,7 +369,6 @@ namespace Oxide.Plugins
             RewardPlayer(player);
         }
         
-#if RUST
         private void ClaimCommand(IPlayer player, string command, string[] args)
         {
             BasePlayer bPlayer = player.Object as BasePlayer;
@@ -408,7 +407,6 @@ namespace Oxide.Plugins
 
             player.Message(Lang("EventAward", player.Id, string.Join("\n", awardItems.Select(x => x.ToString()).ToArray())));
         }
-#endif
 
         #endregion
 
